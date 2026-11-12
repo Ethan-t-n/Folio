@@ -1,12 +1,12 @@
 # Folio — two-person word mentalism effect
 
-A participant browses **Folio** (an original article-statistics site backed by Wikimedia's public API), taps a word, confirms *“Share this word with the performer?”*, and the word appears — concealed until **Reveal** — on the performer's private console.
+A participant browses **Folio** (an original article-statistics site backed by Wikimedia's public API), taps a word, confirms _“Share this word with the performer?”_, and the word appears — concealed until **Reveal** — on the performer's private console.
 
-| Route | Who | Purpose |
-|---|---|---|
-| `/` | Participant | Enter code → search → read article → tap word → confirm → sent |
-| `/perform` | Performer | Create session → waiting → word received → reveal → end |
-| `?demo=1` on either | Reviewer | Local simulation, labelled "Demo mode"; never touches the backend |
+| Route               | Who         | Purpose                                                           |
+| ------------------- | ----------- | ----------------------------------------------------------------- |
+| `/`                 | Participant | Enter code → search → read article → tap word → confirm → sent    |
+| `/perform`          | Performer   | Create session → waiting → word received → reveal → end           |
+| `?demo=1` on either | Reviewer    | Local simulation, labelled "Demo mode"; never touches the backend |
 
 ## Architecture
 
@@ -41,16 +41,20 @@ bun run test
 ```
 
 ## Backend setup (outside Lovable)
+
 1. Create a Postgres/Supabase project and run `drizzle/migrations/*.sql`.
 2. Set the env vars from `.env.example`. The service role key is read only inside server functions.
 
 ## Deployment
+
 Publish from Lovable (Cloudflare Workers runtime). No extra configuration is needed.
 
 ## Tests
+
 `src/lib/session/core.test.ts` covers creation (hash-only storage), join + delivery, wrong code, bad token, duplicate prevention, word validation, expiry, ending and unauthorized ending. An end-to-end run (two browsers, real backend) was performed manually with Playwright during development; it is not in CI.
 
 ## Known limitations
+
 - No rate limiting on code guesses (≈ 887 M combinations, 2 h lifetime). Add per-IP throttling before wide use.
 - Code hashes are unsalted SHA-256 (needed for lookup); acceptable given short lifetime, but not secret against an attacker with DB access.
 - Expired sessions that are never touched again stay in the table until the next session is created (no scheduled job — pg_cron unavailable in this project).
@@ -58,6 +62,7 @@ Publish from Lovable (Cloudflare Workers runtime). No extra configuration is nee
 - Participant state is in memory; reloading the participant page requires re-entering the code.
 
 ## Feature branches and pull requests
+
 - Lovable syncs one branch (usually `main`). Do work on a feature branch (`git switch -c feature/short-name`) so the synced branch stays working.
 - Push the branch and open a pull request into the synced branch. CI (`.github/workflows/ci.yml`) runs lint, tests and build on every pull request.
 - Merge only when CI passes; avoid force-pushing or rewriting history that is already pushed.

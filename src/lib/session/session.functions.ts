@@ -11,7 +11,8 @@ async function service() {
   return createSessionService(await createSupabaseStore());
 }
 
-type Result<T> = { ok: true; data: T } | { ok: false; error: SessionError["code"] | "server"; message: string };
+type Result<T> =
+  { ok: true; data: T } | { ok: false; error: SessionError["code"] | "server"; message: string };
 async function wrap<T>(fn: () => Promise<T>): Promise<Result<T>> {
   try {
     return { ok: true, data: await fn() };
@@ -38,7 +39,9 @@ export const submitWord = createServerFn({ method: "POST" })
     z.object({ sessionId: id, participantToken: token, word: z.string().min(1).max(100) }).parse(i),
   )
   .handler(async ({ data }) =>
-    wrap(async () => (await service()).submitWord(data.sessionId, data.participantToken, data.word)),
+    wrap(async () =>
+      (await service()).submitWord(data.sessionId, data.participantToken, data.word),
+    ),
   );
 
 export const getPerformerStatus = createServerFn({ method: "POST" })
@@ -49,4 +52,6 @@ export const getPerformerStatus = createServerFn({ method: "POST" })
 
 export const endSession = createServerFn({ method: "POST" })
   .validator((i: unknown) => z.object({ sessionId: id, performerToken: token }).parse(i))
-  .handler(async ({ data }) => wrap(async () => (await service()).endSession(data.sessionId, data.performerToken)));
+  .handler(async ({ data }) =>
+    wrap(async () => (await service()).endSession(data.sessionId, data.performerToken)),
+  );
