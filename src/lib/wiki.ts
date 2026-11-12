@@ -16,7 +16,7 @@ export interface Article {
 
 async function get(params: Record<string, string>, signal?: AbortSignal) {
   const qs = new URLSearchParams({ format: "json", formatversion: "2", origin: "*", ...params });
-  const res = await fetch(`${API}?${qs}`, { signal });
+  const res = await fetch(`${API}?${qs}`, { signal: signal ?? null });
   if (!res.ok) throw new Error(`Wikimedia responded ${res.status}`);
   return res.json();
 }

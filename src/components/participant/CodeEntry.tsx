@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function CodeEntry({ onJoin, error, busy }: { onJoin: (code: string) => void; error?: string; busy: boolean }) {
+export function CodeEntry({ onJoin, error, busy }: { onJoin: (code: string) => void; error?: string | undefined; busy: boolean }) {
   const [code, setCode] = useState("");
   return (
     <form
