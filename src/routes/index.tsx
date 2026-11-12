@@ -80,6 +80,7 @@ function ParticipantPage() {
           pendingWord.current = null;
           break;
         }
+        setSendError(undefined);
       }
     } finally {
       sending.current = false;
