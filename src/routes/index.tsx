@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DemoBanner } from "@/components/DemoBanner";
 import { CodeEntry } from "@/components/participant/CodeEntry";
@@ -33,7 +32,6 @@ export const Route = createFileRoute("/")({
 type Phase =
   | { kind: "code" }
   | { kind: "browse"; title: string | null }
-  | { kind: "sent"; word: string }
   | { kind: "expired" };
 
 function ParticipantPage() {
@@ -46,7 +44,7 @@ function ParticipantPage() {
   const [selected, setSelected] = useState<{ key: string; word: string } | null>(null);
   const [sendError, setSendError] = useState<string>();
   const sending = useRef(false);
-  const attemptedWord = useRef<string | null>(null);
+  const pendingWord = useRef<string | null>(null);
 
   async function join(code: string) {
     setBusy(true);
@@ -58,31 +56,30 @@ function ParticipantPage() {
         r.error === "not_found" ? "That code isn't active. Check it and try again." : r.message,
       );
     setCreds(r.data);
-    attemptedWord.current = null;
     setPhase({ kind: "browse", title: null });
   }
 
-  async function send(word: string) {
+  async function sendPendingWords() {
     if (!creds || sending.current) return;
-    if (attemptedWord.current && attemptedWord.current !== word) {
-      setSendError("Tap your first selected word again to retry sending it.");
-      return;
-    }
-
-    attemptedWord.current ??= word;
     sending.current = true;
     setBusy(true);
     setSendError(undefined);
     try {
-      const r = await api.submitWord(creds.sessionId, creds.participantToken, word);
-      if (r.ok) return setPhase({ kind: "sent", word });
-      if (r.error === "expired" || r.error === "unauthorized") {
-        return setPhase({ kind: "expired" });
+      while (pendingWord.current !== null) {
+        const word = pendingWord.current;
+        pendingWord.current = null;
+        const r = await api.submitWord(creds.sessionId, creds.participantToken, word);
+        if (!r.ok) {
+          if (r.error === "expired" || r.error === "unauthorized") {
+            pendingWord.current = null;
+            setPhase({ kind: "expired" });
+          } else {
+            setSendError(r.message);
+          }
+          pendingWord.current = null;
+          break;
+        }
       }
-      if (r.error === "already_sent") {
-        return setPhase({ kind: "sent", word: attemptedWord.current });
-      }
-      setSendError(r.message);
     } finally {
       sending.current = false;
       setBusy(false);
@@ -90,13 +87,11 @@ function ParticipantPage() {
   }
 
   function selectWord(next: { key: string; word: string } | null) {
-    if (!next || sending.current) return;
-    if (attemptedWord.current && attemptedWord.current !== next.word) {
-      setSendError("Tap your first selected word again to retry sending it.");
-      return;
-    }
+    if (!next) return;
     setSelected(next);
-    void send(next.word);
+    setSendError(undefined);
+    pendingWord.current = next.word;
+    void sendPendingWords();
   }
 
   return (
@@ -142,16 +137,6 @@ function ParticipantPage() {
           <p role="alert" className="mt-3 text-center text-sm text-destructive">
             Couldn’t send the selected word. Tap it again to retry. {sendError}
           </p>
-        )}
-
-        {phase.kind === "sent" && (
-          <div className="mx-auto mt-16 max-w-sm text-center">
-            <CheckCircle2 className="mx-auto h-12 w-12 text-success" />
-            <h1 className="mt-4 text-3xl">Shared.</h1>
-            <p className="mt-2 text-muted-foreground">
-              Your word was sent once. You can put your phone away.
-            </p>
-          </div>
         )}
 
         {phase.kind === "expired" && (
