@@ -18,16 +18,17 @@ describe("browser-local demo sessions", () => {
     ).resolves.toMatchObject({ state: "received", word: "octopus" });
   });
 
-  it("rejects a second word for the same demo session", async () => {
+  it("replaces the selected word across independent demo tab stores", async () => {
     const performer = createSessionService(createLocalStorageStore());
     const participant = createSessionService(createLocalStorageStore());
 
     const session = await performer.createSession();
     const joined = await participant.joinSession(session.code);
     await participant.submitWord(joined.sessionId, joined.participantToken, "octopus");
+    await participant.submitWord(joined.sessionId, joined.participantToken, "arms");
 
     await expect(
-      participant.submitWord(joined.sessionId, joined.participantToken, "arms"),
-    ).rejects.toMatchObject({ code: "already_sent" });
+      performer.getPerformerStatus(session.sessionId, session.performerToken),
+    ).resolves.toMatchObject({ state: "received", word: "arms" });
   });
 });
