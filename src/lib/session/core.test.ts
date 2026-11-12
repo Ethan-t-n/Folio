@@ -60,16 +60,15 @@ describe("participant join and word delivery", () => {
     });
   });
 
-  it("accepts only one word (no duplicate submissions)", async () => {
+  it("updates the performer to the participant's latest selected word", async () => {
     const { svc } = setup();
     const s = await svc.createSession();
     const j = await svc.joinSession(s.code);
     await svc.submitWord(j.sessionId, j.participantToken, "first");
-    await expect(svc.submitWord(j.sessionId, j.participantToken, "second")).rejects.toMatchObject({
-      code: "already_sent",
-    });
+    await svc.submitWord(j.sessionId, j.participantToken, "second");
     expect(await svc.getPerformerStatus(s.sessionId, s.performerToken)).toMatchObject({
-      word: "first",
+      state: "received",
+      word: "second",
     });
   });
 
@@ -147,24 +146,30 @@ describe("repeated joins", () => {
     });
   });
 
-  it("joining after a word was shared is rejected", async () => {
+  it("allows a participant to rejoin and replace the current selection", async () => {
     const { svc } = setup();
     const s = await svc.createSession();
-    const j = await svc.joinSession(s.code);
-    await svc.submitWord(j.sessionId, j.participantToken, "only");
-    await expect(svc.joinSession(s.code)).rejects.toMatchObject({ code: "already_sent" });
+    const first = await svc.joinSession(s.code);
+    await svc.submitWord(first.sessionId, first.participantToken, "first");
+
+    const second = await svc.joinSession(s.code);
+    await svc.submitWord(second.sessionId, second.participantToken, "second");
+    expect(await svc.getPerformerStatus(s.sessionId, s.performerToken)).toMatchObject({
+      state: "received",
+      word: "second",
+    });
   });
 });
 
-describe("concurrent word submissions", () => {
-  it("exactly one of several simultaneous submissions is stored", async () => {
+describe("multiple word selections", () => {
+  it("accepts successive selections and leaves the latest one stored", async () => {
     const { svc } = setup();
     const s = await svc.createSession();
     const j = await svc.joinSession(s.code);
     const results = await Promise.allSettled(
       ["alpha", "beta", "gamma"].map((w) => svc.submitWord(j.sessionId, j.participantToken, w)),
     );
-    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(3);
     const st = await svc.getPerformerStatus(s.sessionId, s.performerToken);
     expect(st.state).toBe("received");
     expect(["alpha", "beta", "gamma"]).toContain((st as { word: string }).word);
