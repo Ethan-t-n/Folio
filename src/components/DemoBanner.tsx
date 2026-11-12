@@ -4,7 +4,7 @@ export function DemoBanner() {
       role="status"
       className="bg-accent px-4 py-2 text-center font-mono text-xs uppercase tracking-wider text-accent-foreground"
     >
-      Demo mode — simulated locally, nothing is sent or received
+      Demo mode — session words stay in this browser and can pass between its tabs
     </div>
   );
 }

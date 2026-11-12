@@ -1,9 +1,10 @@
 /**
  * Browser-facing API used by UI. Two implementations with the same shape:
  *  - live: calls the server functions (real sessions)
- *  - demo: a local in-memory simulation, clearly labelled in the UI, never touches the backend
+ *  - demo: a localStorage-backed simulation shared across tabs in this browser
  */
-import { createMemoryStore, createSessionService, type PerformerStatus } from "./core";
+import { createSessionService, type PerformerStatus } from "./core";
+import { createLocalStorageStore } from "./local-storage-store";
 import * as fns from "./session.functions";
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string; message: string };
@@ -43,9 +44,8 @@ export const liveApi: SessionApi = {
     network(fns.endSession({ data: { sessionId, performerToken } })),
 };
 
-/** Demo: one shared in-memory service per tab. Demo performer auto-simulates a word after a delay. */
-const demoService = createSessionService(createMemoryStore());
-const demoWords = ["lighthouse", "orchid", "parallax", "velvet", "comet", "harbor"];
+/** Demo sessions are shared only by tabs on this origin in the same browser profile. */
+const demoService = createSessionService(createLocalStorageStore());
 async function demoWrap<T>(fn: () => Promise<T>): Promise<ApiResult<T>> {
   try {
     return { ok: true, data: await fn() };
@@ -56,31 +56,8 @@ async function demoWrap<T>(fn: () => Promise<T>): Promise<ApiResult<T>> {
 }
 export const demoApi: SessionApi = {
   mode: "demo",
-  createSession: () =>
-    demoWrap(async () => {
-      const s = await demoService.createSession();
-      // Simulated participant (demo only).
-      setTimeout(async () => {
-        try {
-          const j = await demoService.joinSession(s.code);
-          await demoService.submitWord(
-            j.sessionId,
-            j.participantToken,
-            demoWords[Math.floor(Math.random() * demoWords.length)] ?? "comet",
-          );
-        } catch {
-          /* session ended before the simulation fired */
-        }
-      }, 6000);
-      return s;
-    }),
-  joinSession: (code) =>
-    demoWrap(async () => {
-      // Demo participant accepts any code and creates a throwaway local session.
-      const s = await demoService.createSession();
-      void code;
-      return demoService.joinSession(s.code);
-    }),
+  createSession: () => demoWrap(() => demoService.createSession()),
+  joinSession: (code) => demoWrap(() => demoService.joinSession(code)),
   submitWord: (a, b, w) => demoWrap(() => demoService.submitWord(a, b, w)),
   getPerformerStatus: (a, b) => demoWrap(() => demoService.getPerformerStatus(a, b)),
   endSession: (a, b) => demoWrap(() => demoService.endSession(a, b)),

@@ -1,16 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { DemoBanner } from "@/components/DemoBanner";
 import { CodeEntry } from "@/components/participant/CodeEntry";
@@ -54,8 +44,9 @@ function ParticipantPage() {
   const [busy, setBusy] = useState(false);
   const [codeError, setCodeError] = useState<string>();
   const [selected, setSelected] = useState<{ key: string; word: string } | null>(null);
-  const [confirming, setConfirming] = useState(false);
   const [sendError, setSendError] = useState<string>();
+  const sending = useRef(false);
+  const attemptedWord = useRef<string | null>(null);
 
   async function join(code: string) {
     setBusy(true);
@@ -67,20 +58,45 @@ function ParticipantPage() {
         r.error === "not_found" ? "That code isn't active. Check it and try again." : r.message,
       );
     setCreds(r.data);
+    attemptedWord.current = null;
     setPhase({ kind: "browse", title: null });
   }
 
-  async function send() {
-    if (!creds || !selected || busy) return;
+  async function send(word: string) {
+    if (!creds || sending.current) return;
+    if (attemptedWord.current && attemptedWord.current !== word) {
+      setSendError("Tap your first selected word again to retry sending it.");
+      return;
+    }
+
+    attemptedWord.current ??= word;
+    sending.current = true;
     setBusy(true);
     setSendError(undefined);
-    const r = await api.submitWord(creds.sessionId, creds.participantToken, selected.word);
-    setBusy(false);
-    setConfirming(false);
-    if (r.ok) return setPhase({ kind: "sent", word: selected.word });
-    if (r.error === "expired" || r.error === "unauthorized") return setPhase({ kind: "expired" });
-    if (r.error === "already_sent") return setPhase({ kind: "sent", word: selected.word });
-    setSendError(r.message);
+    try {
+      const r = await api.submitWord(creds.sessionId, creds.participantToken, word);
+      if (r.ok) return setPhase({ kind: "sent", word });
+      if (r.error === "expired" || r.error === "unauthorized") {
+        return setPhase({ kind: "expired" });
+      }
+      if (r.error === "already_sent") {
+        return setPhase({ kind: "sent", word: attemptedWord.current });
+      }
+      setSendError(r.message);
+    } finally {
+      sending.current = false;
+      setBusy(false);
+    }
+  }
+
+  function selectWord(next: { key: string; word: string } | null) {
+    if (!next || sending.current) return;
+    if (attemptedWord.current && attemptedWord.current !== next.word) {
+      setSendError("Tap your first selected word again to retry sending it.");
+      return;
+    }
+    setSelected(next);
+    void send(next.word);
   }
 
   return (
@@ -113,8 +129,19 @@ function ParticipantPage() {
             title={phase.title}
             onBack={() => setPhase({ kind: "browse", title: null })}
             selected={selected}
-            onSelect={setSelected}
+            onSelect={selectWord}
           />
+        )}
+
+        {phase.kind === "browse" && phase.title && busy && (
+          <p role="status" className="mt-3 text-center text-sm text-muted-foreground">
+            Sending “{selected?.word}” to the performer…
+          </p>
+        )}
+        {phase.kind === "browse" && phase.title && sendError && (
+          <p role="alert" className="mt-3 text-center text-sm text-destructive">
+            Couldn’t send the selected word. Tap it again to retry. {sendError}
+          </p>
         )}
 
         {phase.kind === "sent" && (
@@ -143,50 +170,6 @@ function ParticipantPage() {
           </div>
         )}
       </main>
-
-      {phase.kind === "browse" && phase.title && selected && (
-        <div className="fixed inset-x-0 bottom-0 border-t border-border bg-card/95 p-4 backdrop-blur">
-          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Selected</p>
-              <p className="truncate font-display text-xl">{selected.word}</p>
-            </div>
-            <Button size="lg" onClick={() => setConfirming(true)}>
-              Share…
-            </Button>
-          </div>
-          {sendError && (
-            <p role="alert" className="mx-auto mt-2 max-w-2xl text-sm text-destructive">
-              {sendError}
-            </p>
-          )}
-        </div>
-      )}
-
-      <AlertDialog open={confirming} onOpenChange={(o) => !busy && setConfirming(o)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Share this word with the performer?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your searches and article requests go directly to Wikimedia (Wikipedia). Only the word
-              “{selected?.word}” is sent to the performer through this app, and only after you
-              confirm.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={busy}
-              onClick={(e) => {
-                e.preventDefault();
-                void send();
-              }}
-            >
-              {busy ? "Sending…" : "Share word"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
