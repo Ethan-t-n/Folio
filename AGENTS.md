@@ -28,3 +28,8 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+- Session access goes only through server functions in `src/lib/session/session.functions.ts`; the `sessions` table has RLS with no client policies — authorization is token possession verified against stored hashes.
+- Session business rules live in `src/lib/session/core.ts` against the `SessionStore` interface so they stay unit-testable and shared with demo mode.
+- Performer delivery uses polling, not realtime sockets, to keep the table client-inaccessible.
