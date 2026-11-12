@@ -119,7 +119,7 @@ function ParticipantPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Share this word with the performer?</AlertDialogTitle>
             <AlertDialogDescription>
-              Only the word “{selected?.word}” will be sent. Nothing else — not your searches or the article — leaves this page.
+              Your searches and article requests go directly to Wikimedia (Wikipedia). Only the word “{selected?.word}” is sent to the performer through this app, and only after you confirm.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -56,3 +56,9 @@ Publish from Lovable (Cloudflare Workers runtime). No extra configuration is nee
 - Expired sessions that are never touched again stay in the table until the next session is created (no scheduled job — pg_cron unavailable in this project).
 - One word per session. English Wikipedia only. Polling adds up to ~1.5 s latency.
 - Participant state is in memory; reloading the participant page requires re-entering the code.
+
+## Feature branches and pull requests
+- Lovable syncs one branch (usually `main`). Do work on a feature branch (`git switch -c feature/short-name`) so the synced branch stays working.
+- Push the branch and open a pull request into the synced branch. CI (`.github/workflows/ci.yml`) runs lint, tests and build on every pull request.
+- Merge only when CI passes; avoid force-pushing or rewriting history that is already pushed.
+- Never commit `.env`; it is git-ignored. Use `.env.example` for placeholders.
