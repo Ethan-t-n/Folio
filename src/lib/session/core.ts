@@ -74,8 +74,8 @@ export interface SessionStore {
   getById(id: string): Promise<SessionRow | null>;
   getByCodeHash(codeHash: string): Promise<SessionRow | null>;
   update(id: string, patch: Partial<SessionRow>): Promise<void>;
-  /** Conditional update used to prevent double submission. Returns true if a row changed. */
-  setWordIfEmpty(id: string, word: string, at: string): Promise<boolean>;
+  /** Replaces the session’s current selected word. Returns true if a row changed. */
+  setWord(id: string, word: string, at: string): Promise<boolean>;
   delete(id: string): Promise<void>;
   deleteExpired(now: Date): Promise<void>;
 }
@@ -116,8 +116,6 @@ export function createSessionService(store: SessionStore, clock: () => Date = ()
       const row = await store.getByCodeHash(await sha256(normalizeCode(rawCode)));
       if (!row) throw new SessionError("not_found", "No active session with that code.");
       if (isExpired(row, now)) throw new SessionError("expired", "This session has expired.");
-      if (row.word)
-        throw new SessionError("already_sent", "A word was already shared in this session.");
       const participantToken = generateToken();
       await store.update(row.id, { participant_token_hash: await sha256(participantToken) });
       return { sessionId: row.id, participantToken };
@@ -138,8 +136,8 @@ export function createSessionService(store: SessionStore, clock: () => Date = ()
         row.participant_token_hash !== (await sha256(participantToken))
       )
         throw new SessionError("unauthorized", "Session token is not valid.");
-      const ok = await store.setWordIfEmpty(row.id, word, now.toISOString());
-      if (!ok) throw new SessionError("already_sent", "A word was already shared in this session.");
+      const ok = await store.setWord(row.id, word, now.toISOString());
+      if (!ok) throw new SessionError("expired", "This session has ended.");
       return { ok: true as const };
     },
 
@@ -196,9 +194,9 @@ export function createMemoryStore(): SessionStore & { rows: Map<string, SessionR
       const r = rows.get(id);
       if (r) rows.set(id, { ...r, ...patch });
     },
-    async setWordIfEmpty(id, word, at) {
+    async setWord(id, word, at) {
       const r = rows.get(id);
-      if (!r || r.word) return false;
+      if (!r) return false;
       rows.set(id, { ...r, word, word_received_at: at });
       return true;
     },
