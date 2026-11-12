@@ -25,7 +25,10 @@ export function CodeEntry({
         <br />
         <em className="text-primary">by the numbers.</em>
       </h1>
-      <p className="text-sm text-muted-foreground">Enter your access code to start exploring. Searches and article requests go to Wikimedia. Tapping a word in an article sends that word to the performer once.</p>
+      <p className="text-sm text-muted-foreground">
+        Enter your access code to start exploring. Searches and article requests go to Wikimedia.
+        Tapping a word in an article sends that word to the performer once.
+      </p>
       <Input
         aria-label="Access code"
         value={code}
