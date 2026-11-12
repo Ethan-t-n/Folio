@@ -30,7 +30,7 @@ export function generateCode(): string {
   const limit = 256 - (256 % CODE_ALPHABET.length);
   while (out.length < CODE_LENGTH) {
     for (const byte of randomBytes(16)) {
-      if (byte < limit && out.length < CODE_LENGTH) out.push(CODE_ALPHABET[byte % CODE_ALPHABET.length]);
+      if (byte < limit && out.length < CODE_LENGTH) out.push(CODE_ALPHABET.charAt(byte % CODE_ALPHABET.length));
     }
   }
   return out.join("");

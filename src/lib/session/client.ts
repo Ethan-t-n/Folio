@@ -51,7 +51,7 @@ export const demoApi: SessionApi = {
       setTimeout(async () => {
         try {
           const j = await demoService.joinSession(s.code);
-          await demoService.submitWord(j.sessionId, j.participantToken, demoWords[Math.floor(Math.random() * demoWords.length)]);
+          await demoService.submitWord(j.sessionId, j.participantToken, demoWords[Math.floor(Math.random() * demoWords.length)] ?? "comet");
         } catch { /* session ended before the simulation fired */ }
       }, 6000);
       return s;
