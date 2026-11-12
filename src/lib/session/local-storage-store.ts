@@ -38,11 +38,11 @@ export function createLocalStorageStore(): SessionStore {
       rows[index] = { ...row, ...patch };
       writeRows(rows);
     },
-    async setWordIfEmpty(id, word, at) {
+    async setWord(id, word, at) {
       const rows = readRows();
       const index = rows.findIndex((row) => row.id === id);
       const row = rows[index];
-      if (index < 0 || !row || row.word) return false;
+      if (index < 0 || !row) return false;
       rows[index] = { ...row, word, word_received_at: at };
       writeRows(rows);
       return true;
