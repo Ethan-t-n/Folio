@@ -1,11 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { createMemoryStore, createSessionService, normalizeWord, sha256, SESSION_TTL_MS, CODE_LENGTH } from "./core";
+import {
+  createMemoryStore,
+  createSessionService,
+  normalizeWord,
+  sha256,
+  SESSION_TTL_MS,
+  CODE_LENGTH,
+} from "./core";
 
 function setup() {
   let now = new Date("2026-01-01T12:00:00Z");
   const store = createMemoryStore();
   const svc = createSessionService(store, () => now);
-  return { store, svc, advance: (ms: number) => { now = new Date(now.getTime() + ms); } };
+  return {
+    store,
+    svc,
+    advance: (ms: number) => {
+      now = new Date(now.getTime() + ms);
+    },
+  };
 }
 
 describe("session creation", () => {
@@ -42,7 +55,9 @@ describe("participant join and word delivery", () => {
     const { svc } = setup();
     const s = await svc.createSession();
     await svc.joinSession(s.code);
-    await expect(svc.submitWord(s.sessionId, "0".repeat(64), "word")).rejects.toMatchObject({ code: "unauthorized" });
+    await expect(svc.submitWord(s.sessionId, "0".repeat(64), "word")).rejects.toMatchObject({
+      code: "unauthorized",
+    });
   });
 
   it("accepts only one word (no duplicate submissions)", async () => {
@@ -50,14 +65,20 @@ describe("participant join and word delivery", () => {
     const s = await svc.createSession();
     const j = await svc.joinSession(s.code);
     await svc.submitWord(j.sessionId, j.participantToken, "first");
-    await expect(svc.submitWord(j.sessionId, j.participantToken, "second")).rejects.toMatchObject({ code: "already_sent" });
-    expect(await svc.getPerformerStatus(s.sessionId, s.performerToken)).toMatchObject({ word: "first" });
+    await expect(svc.submitWord(j.sessionId, j.participantToken, "second")).rejects.toMatchObject({
+      code: "already_sent",
+    });
+    expect(await svc.getPerformerStatus(s.sessionId, s.performerToken)).toMatchObject({
+      word: "first",
+    });
   });
 
   it("only the performer token can read the word", async () => {
     const { svc } = setup();
     const s = await svc.createSession();
-    await expect(svc.getPerformerStatus(s.sessionId, "a".repeat(64))).rejects.toMatchObject({ code: "unauthorized" });
+    await expect(svc.getPerformerStatus(s.sessionId, "a".repeat(64))).rejects.toMatchObject({
+      code: "unauthorized",
+    });
   });
 
   it("rejects multi-word or empty selections", () => {
@@ -73,7 +94,9 @@ describe("expiry", () => {
     const s = await svc.createSession();
     const j = await svc.joinSession(s.code);
     advance(SESSION_TTL_MS + 1);
-    await expect(svc.submitWord(j.sessionId, j.participantToken, "late")).rejects.toMatchObject({ code: "expired" });
+    await expect(svc.submitWord(j.sessionId, j.participantToken, "late")).rejects.toMatchObject({
+      code: "expired",
+    });
     expect(store.rows.size).toBe(0);
     await expect(svc.joinSession(s.code)).rejects.toMatchObject({ code: "not_found" });
   });
@@ -93,13 +116,57 @@ describe("ending a session", () => {
     const j = await svc.joinSession(s.code);
     await svc.endSession(s.sessionId, s.performerToken);
     expect(store.rows.size).toBe(0);
-    await expect(svc.submitWord(j.sessionId, j.participantToken, "word")).rejects.toMatchObject({ code: "expired" });
+    await expect(svc.submitWord(j.sessionId, j.participantToken, "word")).rejects.toMatchObject({
+      code: "expired",
+    });
   });
 
   it("cannot be ended by someone without the performer token", async () => {
     const { svc, store } = setup();
     const s = await svc.createSession();
-    await expect(svc.endSession(s.sessionId, "b".repeat(64))).rejects.toMatchObject({ code: "unauthorized" });
+    await expect(svc.endSession(s.sessionId, "b".repeat(64))).rejects.toMatchObject({
+      code: "unauthorized",
+    });
     expect(store.rows.size).toBe(1);
+  });
+});
+
+describe("repeated joins", () => {
+  it("a second join issues a new token and invalidates the earlier one", async () => {
+    const { svc } = setup();
+    const s = await svc.createSession();
+    const first = await svc.joinSession(s.code);
+    const second = await svc.joinSession(s.code);
+    expect(second.participantToken).not.toBe(first.participantToken);
+    await expect(svc.submitWord(s.sessionId, first.participantToken, "old")).rejects.toMatchObject({
+      code: "unauthorized",
+    });
+    await svc.submitWord(s.sessionId, second.participantToken, "new");
+    expect(await svc.getPerformerStatus(s.sessionId, s.performerToken)).toMatchObject({
+      word: "new",
+    });
+  });
+
+  it("joining after a word was shared is rejected", async () => {
+    const { svc } = setup();
+    const s = await svc.createSession();
+    const j = await svc.joinSession(s.code);
+    await svc.submitWord(j.sessionId, j.participantToken, "only");
+    await expect(svc.joinSession(s.code)).rejects.toMatchObject({ code: "already_sent" });
+  });
+});
+
+describe("concurrent word submissions", () => {
+  it("exactly one of several simultaneous submissions is stored", async () => {
+    const { svc } = setup();
+    const s = await svc.createSession();
+    const j = await svc.joinSession(s.code);
+    const results = await Promise.allSettled(
+      ["alpha", "beta", "gamma"].map((w) => svc.submitWord(j.sessionId, j.participantToken, w)),
+    );
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const st = await svc.getPerformerStatus(s.sessionId, s.performerToken);
+    expect(st.state).toBe("received");
+    expect(["alpha", "beta", "gamma"]).toContain((st as { word: string }).word);
   });
 });

@@ -1,6 +1,12 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter, rootRouteId } from "@tanstack/react-router";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/session/client", () => ({
+  getApi: () => {
+    throw new Error("getApi should not be called by a route-matching test");
+  },
+}));
 
 import { routeTree } from "@/routeTree.gen";
 

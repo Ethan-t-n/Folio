@@ -12,13 +12,24 @@ export interface SessionApi {
   mode: "live" | "demo";
   createSession(): Promise<ApiResult<{ sessionId: string; code: string; performerToken: string }>>;
   joinSession(code: string): Promise<ApiResult<{ sessionId: string; participantToken: string }>>;
-  submitWord(sessionId: string, participantToken: string, word: string): Promise<ApiResult<{ ok: true }>>;
-  getPerformerStatus(sessionId: string, performerToken: string): Promise<ApiResult<PerformerStatus>>;
+  submitWord(
+    sessionId: string,
+    participantToken: string,
+    word: string,
+  ): Promise<ApiResult<{ ok: true }>>;
+  getPerformerStatus(
+    sessionId: string,
+    performerToken: string,
+  ): Promise<ApiResult<PerformerStatus>>;
   endSession(sessionId: string, performerToken: string): Promise<ApiResult<{ ok: true }>>;
 }
 
 const network = <T>(p: Promise<ApiResult<T>>): Promise<ApiResult<T>> =>
-  p.catch(() => ({ ok: false as const, error: "network", message: "Connection problem. Check your signal and retry." }));
+  p.catch(() => ({
+    ok: false as const,
+    error: "network",
+    message: "Connection problem. Check your signal and retry.",
+  }));
 
 export const liveApi: SessionApi = {
   mode: "live",
@@ -28,7 +39,8 @@ export const liveApi: SessionApi = {
     network(fns.submitWord({ data: { sessionId, participantToken, word } })),
   getPerformerStatus: (sessionId, performerToken) =>
     network(fns.getPerformerStatus({ data: { sessionId, performerToken } })),
-  endSession: (sessionId, performerToken) => network(fns.endSession({ data: { sessionId, performerToken } })),
+  endSession: (sessionId, performerToken) =>
+    network(fns.endSession({ data: { sessionId, performerToken } })),
 };
 
 /** Demo: one shared in-memory service per tab. Demo performer auto-simulates a word after a delay. */
@@ -51,8 +63,14 @@ export const demoApi: SessionApi = {
       setTimeout(async () => {
         try {
           const j = await demoService.joinSession(s.code);
-          await demoService.submitWord(j.sessionId, j.participantToken, demoWords[Math.floor(Math.random() * demoWords.length)] ?? "comet");
-        } catch { /* session ended before the simulation fired */ }
+          await demoService.submitWord(
+            j.sessionId,
+            j.participantToken,
+            demoWords[Math.floor(Math.random() * demoWords.length)] ?? "comet",
+          );
+        } catch {
+          /* session ended before the simulation fired */
+        }
       }, 6000);
       return s;
     }),

@@ -28,7 +28,12 @@ function ConnectionPill({ c }: { c: Connection }) {
   const label = { online: "Connected", reconnecting: "Reconnecting…", offline: "Offline" }[c];
   return (
     <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-      <span className={cn("h-2 w-2 rounded-full", c === "online" ? "bg-success" : "bg-destructive animate-pulse-dot")} />
+      <span
+        className={cn(
+          "h-2 w-2 rounded-full",
+          c === "online" ? "bg-success" : "bg-destructive animate-pulse-dot",
+        )}
+      />
       {label}
     </span>
   );
@@ -41,14 +46,22 @@ function PerformerPage() {
   const [confirmEnd, setConfirmEnd] = useState(false);
   const state = s.status?.state;
 
-  useEffect(() => { if (state !== "received") setRevealed(false); }, [state]);
-  useEffect(() => { if (!confirmEnd) return; const t = setTimeout(() => setConfirmEnd(false), 3000); return () => clearTimeout(t); }, [confirmEnd]);
+  useEffect(() => {
+    if (state !== "received") setRevealed(false);
+  }, [state]);
+  useEffect(() => {
+    if (!confirmEnd) return;
+    const t = setTimeout(() => setConfirmEnd(false), 3000);
+    return () => clearTimeout(t);
+  }, [confirmEnd]);
 
   return (
     <div className="performer flex min-h-[100dvh] flex-col">
       {demo && <DemoBanner />}
       <header className="flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Console</span>
+        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          Console
+        </span>
         {s.creds && state !== "ended" && <ConnectionPill c={s.connection} />}
       </header>
 
@@ -56,9 +69,20 @@ function PerformerPage() {
         {!s.creds && state !== "ended" && (
           <div className="space-y-4">
             <h1 className="text-4xl">Ready when you are.</h1>
-            <p className="text-muted-foreground">Create a session, then give the code to your participant.</p>
-            {s.error && <p role="alert" className="text-sm text-destructive">{s.error}</p>}
-            <Button size="lg" className="h-16 w-full text-lg" onClick={() => void s.create()} disabled={s.busy}>
+            <p className="text-muted-foreground">
+              Create a session, then give the code to your participant.
+            </p>
+            {s.error && (
+              <p role="alert" className="text-sm text-destructive">
+                {s.error}
+              </p>
+            )}
+            <Button
+              size="lg"
+              className="h-16 w-full text-lg"
+              onClick={() => void s.create()}
+              disabled={s.busy}
+            >
               {s.busy ? "Creating…" : "Create session"}
             </Button>
           </div>
@@ -67,8 +91,12 @@ function PerformerPage() {
         {state === "ended" && (
           <div className="space-y-4">
             <h1 className="text-3xl">Session ended</h1>
-            <p className="text-muted-foreground">It was ended or expired and can no longer receive words.</p>
-            <Button size="lg" className="h-16 w-full text-lg" onClick={s.reset}>New session</Button>
+            <p className="text-muted-foreground">
+              It was ended or expired and can no longer receive words.
+            </p>
+            <Button size="lg" className="h-16 w-full text-lg" onClick={s.reset}>
+              New session
+            </Button>
           </div>
         )}
 
@@ -79,31 +107,57 @@ function PerformerPage() {
               <p className="mt-1 font-mono text-4xl tracking-[0.25em]">{s.creds.code}</p>
             </section>
 
-            <section aria-live="polite" className="flex min-h-56 flex-col items-center justify-center rounded-2xl border border-border bg-card p-5 text-center">
+            <section
+              aria-live="polite"
+              className="flex min-h-56 flex-col items-center justify-center rounded-2xl border border-border bg-card p-5 text-center"
+            >
               {(!s.status || state === "waiting") && (
                 <>
                   <span className="h-3 w-3 rounded-full bg-primary animate-pulse-dot" />
                   <p className="mt-3 text-muted-foreground">Waiting for a word…</p>
                 </>
               )}
-              {s.status?.state === "received" && (
-                revealed ? (
+              {s.status?.state === "received" &&
+                (revealed ? (
                   <p className="break-all font-display text-5xl">{s.status.word}</p>
                 ) : (
                   <>
-                    <p className="text-sm uppercase tracking-wider text-muted-foreground">Word received</p>
-                    <p className="mt-3 select-none font-display text-5xl text-muted-foreground blur-md" aria-hidden>••••••</p>
+                    <p className="text-sm uppercase tracking-wider text-muted-foreground">
+                      Word received
+                    </p>
+                    <p
+                      className="mt-3 select-none font-display text-5xl text-muted-foreground blur-md"
+                      aria-hidden
+                    >
+                      ••••••
+                    </p>
                   </>
-                )
-              )}
+                ))}
             </section>
 
             {s.status?.state === "received" && (
-              <Button size="lg" variant="secondary" className="h-16 w-full text-lg" onClick={() => setRevealed((r) => !r)}>
-                {revealed ? <><EyeOff /> Hide</> : <><Eye /> Reveal</>}
+              <Button
+                size="lg"
+                variant="secondary"
+                className="h-16 w-full text-lg"
+                onClick={() => setRevealed((r) => !r)}
+              >
+                {revealed ? (
+                  <>
+                    <EyeOff /> Hide
+                  </>
+                ) : (
+                  <>
+                    <Eye /> Reveal
+                  </>
+                )}
               </Button>
             )}
-            {s.error && <p role="alert" className="text-sm text-destructive">{s.error}</p>}
+            {s.error && (
+              <p role="alert" className="text-sm text-destructive">
+                {s.error}
+              </p>
+            )}
             <Button
               size="lg"
               variant={confirmEnd ? "destructive" : "outline"}

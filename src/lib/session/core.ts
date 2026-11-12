@@ -11,7 +11,8 @@ export const MAX_WORD_LENGTH = 64;
 
 export class SessionError extends Error {
   constructor(
-    public readonly code: "not_found" | "expired" | "unauthorized" | "invalid_word" | "already_sent",
+    public readonly code:
+      "not_found" | "expired" | "unauthorized" | "invalid_word" | "already_sent",
     message: string,
   ) {
     super(message);
@@ -30,7 +31,8 @@ export function generateCode(): string {
   const limit = 256 - (256 % CODE_ALPHABET.length);
   while (out.length < CODE_LENGTH) {
     for (const byte of randomBytes(16)) {
-      if (byte < limit && out.length < CODE_LENGTH) out.push(CODE_ALPHABET.charAt(byte % CODE_ALPHABET.length));
+      if (byte < limit && out.length < CODE_LENGTH)
+        out.push(CODE_ALPHABET.charAt(byte % CODE_ALPHABET.length));
     }
   }
   return out.join("");
@@ -83,7 +85,8 @@ export type PerformerStatus =
   | { state: "received"; word: string; receivedAt: string; expiresAt: string }
   | { state: "ended" };
 
-const isExpired = (row: SessionRow, now: Date) => new Date(row.expires_at).getTime() <= now.getTime();
+const isExpired = (row: SessionRow, now: Date) =>
+  new Date(row.expires_at).getTime() <= now.getTime();
 
 export function createSessionService(store: SessionStore, clock: () => Date = () => new Date()) {
   return {
@@ -113,7 +116,8 @@ export function createSessionService(store: SessionStore, clock: () => Date = ()
       const row = await store.getByCodeHash(await sha256(normalizeCode(rawCode)));
       if (!row) throw new SessionError("not_found", "No active session with that code.");
       if (isExpired(row, now)) throw new SessionError("expired", "This session has expired.");
-      if (row.word) throw new SessionError("already_sent", "A word was already shared in this session.");
+      if (row.word)
+        throw new SessionError("already_sent", "A word was already shared in this session.");
       const participantToken = generateToken();
       await store.update(row.id, { participant_token_hash: await sha256(participantToken) });
       return { sessionId: row.id, participantToken };
@@ -129,7 +133,10 @@ export function createSessionService(store: SessionStore, clock: () => Date = ()
         await store.delete(row.id);
         throw new SessionError("expired", "This session has expired.");
       }
-      if (!row.participant_token_hash || row.participant_token_hash !== (await sha256(participantToken)))
+      if (
+        !row.participant_token_hash ||
+        row.participant_token_hash !== (await sha256(participantToken))
+      )
         throw new SessionError("unauthorized", "Session token is not valid.");
       const ok = await store.setWordIfEmpty(row.id, word, now.toISOString());
       if (!ok) throw new SessionError("already_sent", "A word was already shared in this session.");
@@ -147,7 +154,12 @@ export function createSessionService(store: SessionStore, clock: () => Date = ()
         return { state: "ended" };
       }
       if (row.word && row.word_received_at)
-        return { state: "received", word: row.word, receivedAt: row.word_received_at, expiresAt: row.expires_at };
+        return {
+          state: "received",
+          word: row.word,
+          receivedAt: row.word_received_at,
+          expiresAt: row.expires_at,
+        };
       return { state: "waiting", expiresAt: row.expires_at };
     },
 
@@ -169,19 +181,33 @@ export function createMemoryStore(): SessionStore & { rows: Map<string, SessionR
   const rows = new Map<string, SessionRow>();
   return {
     rows,
-    async insert(row) { rows.set(row.id, { ...row }); },
-    async getById(id) { const r = rows.get(id); return r ? { ...r } : null; },
-    async getByCodeHash(h) { for (const r of rows.values()) if (r.code_hash === h) return { ...r }; return null; },
-    async update(id, patch) { const r = rows.get(id); if (r) rows.set(id, { ...r, ...patch }); },
+    async insert(row) {
+      rows.set(row.id, { ...row });
+    },
+    async getById(id) {
+      const r = rows.get(id);
+      return r ? { ...r } : null;
+    },
+    async getByCodeHash(h) {
+      for (const r of rows.values()) if (r.code_hash === h) return { ...r };
+      return null;
+    },
+    async update(id, patch) {
+      const r = rows.get(id);
+      if (r) rows.set(id, { ...r, ...patch });
+    },
     async setWordIfEmpty(id, word, at) {
       const r = rows.get(id);
       if (!r || r.word) return false;
       rows.set(id, { ...r, word, word_received_at: at });
       return true;
     },
-    async delete(id) { rows.delete(id); },
+    async delete(id) {
+      rows.delete(id);
+    },
     async deleteExpired(now) {
-      for (const [id, r] of rows) if (new Date(r.expires_at).getTime() <= now.getTime()) rows.delete(id);
+      for (const [id, r] of rows)
+        if (new Date(r.expires_at).getTime() <= now.getTime()) rows.delete(id);
     },
   };
 }

@@ -23,7 +23,12 @@ export function usePerformerSession(api: SessionApi) {
 
   useEffect(() => {
     const saved = sessionStorage.getItem(storageKey);
-    if (saved) try { setCreds(JSON.parse(saved)); } catch { sessionStorage.removeItem(storageKey); }
+    if (saved)
+      try {
+        setCreds(JSON.parse(saved));
+      } catch {
+        sessionStorage.removeItem(storageKey);
+      }
   }, [storageKey]);
 
   const clear = useCallback(() => {
@@ -51,10 +56,17 @@ export function usePerformerSession(api: SessionApi) {
         setConnection(navigator.onLine === false ? "offline" : "reconnecting");
       }
       const delay = Math.min(POLL_MS * 2 ** Math.min(failures.current, 3), 12000);
-      timer = setTimeout(tick, document.visibilityState === "hidden" ? Math.max(delay, 5000) : delay);
+      timer = setTimeout(
+        tick,
+        document.visibilityState === "hidden" ? Math.max(delay, 5000) : delay,
+      );
     };
     void tick();
-    const wake = () => { clearTimeout(timer); failures.current = 0; void tick(); };
+    const wake = () => {
+      clearTimeout(timer);
+      failures.current = 0;
+      void tick();
+    };
     window.addEventListener("online", wake);
     document.addEventListener("visibilitychange", wake);
     const off = () => setConnection("offline");
@@ -69,7 +81,9 @@ export function usePerformerSession(api: SessionApi) {
   }, [api, creds]);
 
   const create = useCallback(async () => {
-    setBusy(true); setError(undefined); setStatus(null);
+    setBusy(true);
+    setError(undefined);
+    setStatus(null);
     const r = await api.createSession();
     setBusy(false);
     if (!r.ok) return setError(r.message);
@@ -83,8 +97,21 @@ export function usePerformerSession(api: SessionApi) {
     const r = await api.endSession(creds.sessionId, creds.performerToken);
     setBusy(false);
     if (!r.ok && r.error !== "unauthorized") return setError(r.message);
-    clear(); setStatus(null);
+    clear();
+    setStatus(null);
   }, [api, creds, clear]);
 
-  return { creds, status, connection, busy, error, create, end, reset: () => { clear(); setStatus(null); } };
+  return {
+    creds,
+    status,
+    connection,
+    busy,
+    error,
+    create,
+    end,
+    reset: () => {
+      clear();
+      setStatus(null);
+    },
+  };
 }
