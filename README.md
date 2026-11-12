@@ -1,10 +1,10 @@
 # Folio — two-person word mentalism effect
 
-A participant browses **Folio** (an original article-statistics site backed by Wikimedia's public API). Tapping a word in an article sends that word once to the performer, where it stays concealed until **Reveal**. The participant sees a notice before browsing that explains what gets shared.
+A participant browses **Folio** (an original article-statistics site backed by Wikimedia's public API). Tapping a word in an article highlights it and sends the current selection to the performer, where it stays concealed until **Reveal**. Tapping a different word moves the highlight and updates the performer. The participant sees a notice before browsing that explains what gets shared.
 
 | Route               | Who         | Purpose                                                           |
 | ------------------- | ----------- | ----------------------------------------------------------------- |
-| `/`                 | Participant | Enter code → search → read article → tap word → sent    |
+| `/`                 | Participant | Enter code → search → read article → tap a word → change selection any time    |
 | `/perform`          | Performer   | Create session → waiting → word received → reveal → end           |
 | `?demo=1` on either | Reviewer    | Local-only session sharing between tabs in one browser; no backend needed |
 
@@ -26,9 +26,9 @@ SessionStore (supabase-store.server.ts) → `sessions` table (service role only)
 - **Access control**: RLS is enabled with **no policies** and no grants to anon/authenticated, so browsers cannot touch the table. Server functions authorize by token:
   - `createSession` → returns `sessionId` (UUID), 6-char `code`, 256-bit `performerToken`.
   - `joinSession(code)` → issues a 256-bit `participantToken` for that session.
-  - `submitWord(sessionId, participantToken, word)` — single write; conditional update rejects duplicates.
+  - `submitWord(sessionId, participantToken, word)` — participant can update the current selection; only the latest word is stored.
   - `getPerformerStatus` / `endSession` require `performerToken`.
-- **Stored data**: `id`, SHA-256 hashes of code and tokens, the single word, timestamps. No identity, searches, article text or analytics.
+- **Stored data**: `id`, SHA-256 hashes of code and tokens, the current word, timestamps. No identity, searches, article text or analytics.
 - **Deletion**: ending deletes the row. Sessions expire after 2 h; expired rows are deleted lazily on every create/join and on any read of that session.
 
 ## Local setup
@@ -51,14 +51,14 @@ Publish from Lovable (Cloudflare Workers runtime). No extra configuration is nee
 
 ## Tests
 
-`src/lib/session/core.test.ts` covers creation (hash-only storage), join + delivery, wrong code, bad token, duplicate prevention, word validation, expiry, ending and unauthorized ending. An end-to-end run (two browsers, real backend) was performed manually with Playwright during development; it is not in CI.
+`src/lib/session/core.test.ts` covers creation (hash-only storage), join + delivery, wrong code, bad token, word replacement, word validation, expiry, ending and unauthorized ending. An end-to-end run (two browsers, real backend) was performed manually with Playwright during development; it is not in CI.
 
 ## Known limitations
 
 - No rate limiting on code guesses (≈ 887 M combinations, 2 h lifetime). Add per-IP throttling before wide use.
 - Code hashes are unsalted SHA-256 (needed for lookup); acceptable given short lifetime, but not secret against an attacker with DB access.
 - Expired sessions that are never touched again stay in the table until the next session is created (no scheduled job — pg_cron unavailable in this project).
-- One word per session. English Wikipedia only. Polling adds up to ~1.5 s latency.
+- One current word is stored per session; the participant can replace it by tapping another word. English Wikipedia only. Polling adds up to ~1.5 s latency.
 - Participant state is in memory; reloading the participant page requires re-entering the code.
 
 ## Feature branches and pull requests
