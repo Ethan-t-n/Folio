@@ -8,7 +8,7 @@ import { getApi } from "@/lib/session/client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/perform")({
-  validateSearch: (s: Record<string, unknown>) => ({ demo: s.demo === "1" || s.demo === 1 ? ("1" as const) : undefined }),
+  validateSearch: (s: Record<string, unknown>) => ({ demo: s["demo"] === "1" || s["demo"] === 1 ? ("1" as const) : undefined }),
   head: () => ({
     meta: [
       { title: "Console" },

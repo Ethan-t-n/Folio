@@ -13,7 +13,7 @@ import { ArticleReader } from "@/components/participant/ArticleReader";
 import { getApi } from "@/lib/session/client";
 
 export const Route = createFileRoute("/")({
-  validateSearch: (s: Record<string, unknown>) => ({ demo: s.demo === "1" || s.demo === 1 ? ("1" as const) : undefined }),
+  validateSearch: (s: Record<string, unknown>) => ({ demo: s["demo"] === "1" || s["demo"] === 1 ? ("1" as const) : undefined }),
   head: () => ({
     meta: [
       { title: "Folio — article stats & discovery" },
