@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      sessions: {
+        Row: {
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          participant_token_hash: string | null
+          performer_token_hash: string
+          word: string | null
+          word_received_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          participant_token_hash?: string | null
+          performer_token_hash: string
+          word?: string | null
+          word_received_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          participant_token_hash?: string | null
+          performer_token_hash?: string
+          word?: string | null
+          word_received_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
