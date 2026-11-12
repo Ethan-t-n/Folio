@@ -6,7 +6,7 @@ A participant browses **Folio** (an original article-statistics site backed by W
 | ------------------- | ----------- | ----------------------------------------------------------------- |
 | `/`                 | Participant | Enter code → search → read article → tap word → sent    |
 | `/perform`          | Performer   | Create session → waiting → word received → reveal → end           |
-| `?demo=1` on either | Reviewer    | Local simulation, labelled "Demo mode"; never touches the backend |
+| `?demo=1` on either | Reviewer    | Local-only session sharing between tabs in one browser; no backend needed |
 
 ## Architecture
 
@@ -36,7 +36,7 @@ SessionStore (supabase-store.server.ts) → `sessions` table (service role only)
 ```sh
 bun install
 cp .env.example .env   # fill with your own backend values (Lovable fills these automatically)
-bun run dev            # http://localhost:8080  — try /perform?demo=1 and /?demo=1 without credentials
+bun run dev            # http://localhost:8080  — open /perform?demo=1 and /?demo=1 in separate tabs
 bun run test
 ```
 
