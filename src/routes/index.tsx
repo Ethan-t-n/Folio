@@ -75,6 +75,7 @@ function ParticipantPage() {
             setPhase({ kind: "expired" });
           } else {
             setSendError(r.message);
+            if (pendingWord.current !== null) continue;
           }
           pendingWord.current = null;
           break;
