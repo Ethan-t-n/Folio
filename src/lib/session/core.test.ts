@@ -103,3 +103,39 @@ describe("ending a session", () => {
     expect(store.rows.size).toBe(1);
   });
 });
+
+describe("repeated joins", () => {
+  it("a second join issues a new token and invalidates the earlier one", async () => {
+    const { svc } = setup();
+    const s = await svc.createSession();
+    const first = await svc.joinSession(s.code);
+    const second = await svc.joinSession(s.code);
+    expect(second.participantToken).not.toBe(first.participantToken);
+    await expect(svc.submitWord(s.sessionId, first.participantToken, "old")).rejects.toMatchObject({ code: "unauthorized" });
+    await svc.submitWord(s.sessionId, second.participantToken, "new");
+    expect(await svc.getPerformerStatus(s.sessionId, s.performerToken)).toMatchObject({ word: "new" });
+  });
+
+  it("joining after a word was shared is rejected", async () => {
+    const { svc } = setup();
+    const s = await svc.createSession();
+    const j = await svc.joinSession(s.code);
+    await svc.submitWord(j.sessionId, j.participantToken, "only");
+    await expect(svc.joinSession(s.code)).rejects.toMatchObject({ code: "already_sent" });
+  });
+});
+
+describe("concurrent word submissions", () => {
+  it("exactly one of several simultaneous submissions is stored", async () => {
+    const { svc } = setup();
+    const s = await svc.createSession();
+    const j = await svc.joinSession(s.code);
+    const results = await Promise.allSettled(
+      ["alpha", "beta", "gamma"].map((w) => svc.submitWord(j.sessionId, j.participantToken, w)),
+    );
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const st = await svc.getPerformerStatus(s.sessionId, s.performerToken);
+    expect(st.state).toBe("received");
+    expect(["alpha", "beta", "gamma"]).toContain((st as { word: string }).word);
+  });
+});
