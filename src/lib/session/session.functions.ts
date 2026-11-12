@@ -30,11 +30,11 @@ export const createSession = createServerFn({ method: "POST" }).handler(async ()
 );
 
 export const joinSession = createServerFn({ method: "POST" })
-  .inputValidator((i: unknown) => z.object({ code: z.string().min(1).max(20) }).parse(i))
+  .validator((i: unknown) => z.object({ code: z.string().min(1).max(20) }).parse(i))
   .handler(async ({ data }) => wrap(async () => (await service()).joinSession(data.code)));
 
 export const submitWord = createServerFn({ method: "POST" })
-  .inputValidator((i: unknown) =>
+  .validator((i: unknown) =>
     z.object({ sessionId: id, participantToken: token, word: z.string().min(1).max(100) }).parse(i),
   )
   .handler(async ({ data }) =>
@@ -42,11 +42,11 @@ export const submitWord = createServerFn({ method: "POST" })
   );
 
 export const getPerformerStatus = createServerFn({ method: "POST" })
-  .inputValidator((i: unknown) => z.object({ sessionId: id, performerToken: token }).parse(i))
+  .validator((i: unknown) => z.object({ sessionId: id, performerToken: token }).parse(i))
   .handler(async ({ data }) =>
     wrap(async () => (await service()).getPerformerStatus(data.sessionId, data.performerToken)),
   );
 
 export const endSession = createServerFn({ method: "POST" })
-  .inputValidator((i: unknown) => z.object({ sessionId: id, performerToken: token }).parse(i))
+  .validator((i: unknown) => z.object({ sessionId: id, performerToken: token }).parse(i))
   .handler(async ({ data }) => wrap(async () => (await service()).endSession(data.sessionId, data.performerToken)));
