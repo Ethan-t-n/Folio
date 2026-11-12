@@ -1,10 +1,10 @@
 # Folio — two-person word mentalism effect
 
-A participant browses **Folio** (an original article-statistics site backed by Wikimedia's public API), taps a word, confirms _“Share this word with the performer?”_, and the word appears — concealed until **Reveal** — on the performer's private console.
+A participant browses **Folio** (an original article-statistics site backed by Wikimedia's public API). Tapping a word in an article sends that word once to the performer, where it stays concealed until **Reveal**. The participant sees a notice before browsing that explains what gets shared.
 
 | Route               | Who         | Purpose                                                           |
 | ------------------- | ----------- | ----------------------------------------------------------------- |
-| `/`                 | Participant | Enter code → search → read article → tap word → confirm → sent    |
+| `/`                 | Participant | Enter code → search → read article → tap word → sent    |
 | `/perform`          | Performer   | Create session → waiting → word received → reveal → end           |
 | `?demo=1` on either | Reviewer    | Local simulation, labelled "Demo mode"; never touches the backend |
 
