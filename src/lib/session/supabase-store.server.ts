@@ -26,11 +26,10 @@ export async function createSupabaseStore(): Promise<SessionStore> {
       const { error } = await t().update(patch).eq("id", id);
       check(error);
     },
-    async setWordIfEmpty(id, word, at) {
+    async setWord(id, word, at) {
       const { data, error } = await t()
         .update({ word, word_received_at: at })
         .eq("id", id)
-        .is("word", null)
         .select("id");
       check(error);
       return (data?.length ?? 0) > 0;
