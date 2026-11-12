@@ -29,10 +29,7 @@ export const Route = createFileRoute("/")({
   component: ParticipantPage,
 });
 
-type Phase =
-  | { kind: "code" }
-  | { kind: "browse"; title: string | null }
-  | { kind: "expired" };
+type Phase = { kind: "code" } | { kind: "browse"; title: string | null } | { kind: "expired" };
 
 function ParticipantPage() {
   const { demo } = Route.useSearch();
