@@ -170,7 +170,6 @@ function ParticipantPage() {
           </div>
         )}
       </main>
-
     </div>
   );
 }
